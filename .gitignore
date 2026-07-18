@@ -1,0 +1,12 @@
+# 1. Sécurité : Ne jamais envoyer de mots de passe sur internet
+.env
+
+# 2. Environnement virtuel : Géré localement par chaque développeur
+venv/
+
+# 3. Données : On versionne le code, pas la donnée brute
+data/
+
+# 4. Fichiers Python : Fichiers temporaires générés automatiquement
+__pycache__/
+*.pyc
