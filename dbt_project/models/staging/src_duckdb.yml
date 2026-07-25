@@ -1,0 +1,7 @@
+version: 2
+
+sources:
+  - name: duckdb_source
+    schema: main
+    tables:
+      - name: silver_offres

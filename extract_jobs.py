@@ -36,49 +36,52 @@ def get_access_token():
         return None
 
 def fetch_job_offers(token):
-    """Récupère les offres d'emploi 'Data' en Île-de-France."""
+    """Récupère les offres d'emploi 'Data' en Île-de-France (Région 11) et Lille/Nord (Département 59)."""
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json"
     }
     
-    # Paramètres : mot-clé "data" et région Île-de-France (code 11)
-    params = {
-        "motsCles": "data",
-        "region": "11"
-    }
+    zones = [
+        {"nom": "Île-de-France", "params": {"motsCles": "data", "region": "11"}},
+        {"nom": "Lille / Nord", "params": {"motsCles": "data", "departement": "59"}}
+    ]
     
-    response = requests.get(API_URL, headers=headers, params=params)
+    toutes_offres_dict = {}
     
-    if response.status_code in (200, 206):
-        data = response.json()
-        offres = data.get("resultats", [])
-        print(f"✅ Extraction réussie : {len(offres)} offres récupérées (Code {response.status_code}).")
-        return data
-    elif response.status_code == 204:
-        print("⚠️ Aucune offre trouvée avec ces critères.")
-        return None
-    else:
-        print(f"❌ Erreur lors de l'extraction ({response.status_code}): {response.text}")
-        return None
+    for zone in zones:
+        print(f"🔍 Extraction des offres pour : {zone['nom']}...")
+        response = requests.get(API_URL, headers=headers, params=zone["params"])
+        
+        if response.status_code in (200, 206):
+            data = response.json()
+            offres = data.get("resultats", [])
+            print(f"  ✅ {len(offres)} offres récupérées pour {zone['nom']} (Code {response.status_code}).")
+            for offre in offres:
+                toutes_offres_dict[offre["id"]] = offre
+        elif response.status_code == 204:
+            print(f"  ⚠️ Aucune offre trouvée pour {zone['nom']}.")
+        else:
+            print(f"  ❌ Erreur lors de l'extraction pour {zone['nom']} ({response.status_code}): {response.text}")
+            
+    offres_combinees = list(toutes_offres_dict.values())
+    print(f"📊 Total des offres uniques extraites (IDF + Lille) : {len(offres_combinees)}")
+    return {"resultats": offres_combinees}
 
 def save_to_bronze(data):
     """Sauvegarde les données brutes dans la couche Bronze avec la date et l'heure."""
-    # Formatage de la date (ex: 20260718_193000)
     today = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"data/bronze/offres_idf_data_{today}.json"
+    filename = f"data/bronze/offres_idf_lille_data_{today}.json"
     
-    # S'assurer que les dossiers parents existent
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     
-    # Écriture du fichier JSON
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         
     print(f"💾 Données sauvegardées avec succès dans : {filename}")
 
 if __name__ == "__main__":
-    print("🚀 Démarrage du pipeline d'extraction...")
+    print("🚀 Démarrage du pipeline d'extraction (Île-de-France + Lille)...")
     
     # 1. Authentification
     access_token = get_access_token()
@@ -87,8 +90,8 @@ if __name__ == "__main__":
         # 2. Extraction des données
         job_data = fetch_job_offers(access_token)
         
-        if job_data:
+        if job_data and job_data.get("resultats"):
             # 3. Sauvegarde dans la couche Bronze
             save_to_bronze(job_data)
             
-    print("🏁 Fin du script.")
+    print("🏁 Fin du script d'extraction.")

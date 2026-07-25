@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: fact_offres
+    description: "Table de faits centrale répertoriant les offres d'emploi d'alternance 24 mois"
+    columns:
+      - name: id_offre
+        description: "Identifiant unique de l'offre"
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_entreprises
+    description: "Dimension des entreprises recruteuses"
+    columns:
+      - name: id_entreprise
+        description: "Clé primaire MD5 de l'entreprise"
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_competences
+    description: "Dimension des compétences tech extraites par PySpark"
+    columns:
+      - name: id_competence
+        description: "Clé primaire MD5 de la compétence tech"
+        tests:
+          - unique
+          - not_null

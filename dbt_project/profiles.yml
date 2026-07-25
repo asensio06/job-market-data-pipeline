@@ -1,0 +1,7 @@
+job_market_profile:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "data/job_market.db"
+      threads: 4

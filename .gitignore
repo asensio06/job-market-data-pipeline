@@ -1,12 +1,17 @@
-# 1. Sécurité : Ne jamais envoyer de mots de passe sur internet
+# 1. Sécurité : Ne jamais envoyer de clés API / tokens sur internet
 .env
 
-# 2. Environnement virtuel : Géré localement par chaque développeur
+# 2. Environnement virtuel
 venv/
 
-# 3. Données : On versionne le code, pas la donnée brute
+# 3. Données & Logs
 data/
+logs/
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/.user.yml
+*.user.yml
 
-# 4. Fichiers Python : Fichiers temporaires générés automatiquement
+# 4. Caches Python
 __pycache__/
 *.pyc
