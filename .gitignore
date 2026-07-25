@@ -12,6 +12,8 @@ dbt_project/dbt_packages/
 dbt_project/.user.yml
 *.user.yml
 
-# 4. Caches Python
+# 4. Caches & Fichiers de préparation personnels
 __pycache__/
 *.pyc
+MANUEL_UTILISATION.md
+INTERVIEW_PREP_DIFFICULTIES.md
