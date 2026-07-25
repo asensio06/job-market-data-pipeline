@@ -10,6 +10,7 @@ WITH source_data AS (
         nature_contrat,
         salaire,
         competences_tech,
+        coalesce(url_offre, 'https://candidat.francetravail.fr/offres/recherche/detail/' || id_offre) AS url_offre,
         TRY_CAST(date_publication AS TIMESTAMP) AS date_publication,
         date_insertion
     FROM {{ source('duckdb_source', 'silver_offres') }}

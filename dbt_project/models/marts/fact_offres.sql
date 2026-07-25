@@ -8,6 +8,7 @@ SELECT
     o.nature_contrat,
     o.salaire,
     o.competences_tech,
+    o.url_offre,
     o.date_publication,
     o.date_insertion
 FROM {{ ref('stg_offres') }} o

@@ -56,6 +56,8 @@ def notify_new_offers(new_offers_list):
         lieu = offer.get("localisation", "Non renseignée")
         contrat = offer.get("duree_contrat", offer.get("type_contrat", "24 mois"))
         id_offre = offer.get("id_offre", "")
+        url_offre = offer.get("url_offre", f"https://candidat.francetravail.fr/offres/recherche/detail/{id_offre}")
+        competences = offer.get("competences_tech", "Non renseigné")
 
         msg = (
             f"🚨 *NOUVELLE OFFRE DATA (24 MOIS)* 🚨\n\n"
@@ -63,7 +65,9 @@ def notify_new_offers(new_offers_list):
             f"🏢 *Entreprise* : {entreprise}\n"
             f"📍 *Lieu* : {lieu}\n"
             f"📜 *Contrat* : {contrat}\n"
-            f"🔑 *ID Offre* : `{id_offre}`\n"
+            f"💻 *Skills* : {competences}\n"
+            f"🔑 *ID Offre* : `{id_offre}`\n\n"
+            f"🔗 *Postuler directement* :\n{url_offre}\n"
         )
 
         # 1. Console Log

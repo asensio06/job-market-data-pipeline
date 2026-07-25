@@ -83,6 +83,12 @@ def process_silver_layer():
     # 7. EXTRACTION BIG DATA DE COMPÉTENCES TECH AVEC PYSPARK
     df_spark = df_spark.withColumn('text_full', F.lower(F.concat_ws(' ', F.col('intitule'), F.col('description'))))
     
+    # Création du lien direct vers l'offre sur France Travail
+    df_spark = df_spark.withColumn(
+        'url_offre', 
+        F.concat(F.lit("https://candidat.francetravail.fr/offres/recherche/detail/"), F.col('id'))
+    )
+
     skill_cols = [F.when(F.col('text_full').rlike(rf'\b{s}\b'), F.lit(s)).otherwise(None) for s in LISTE_SKILLS_TECH]
     df_spark = df_spark.withColumn('competences_array', F.array(*skill_cols))
     df_spark = df_spark.withColumn('competences_tech', F.concat_ws(', ', F.array_compact('competences_array')))
@@ -98,7 +104,8 @@ def process_silver_layer():
         'natureContrat': 'nature_contrat',
         'salaire.libelle': 'salaire',
         'competences_tech': 'competences_tech',
-        'dateCreation': 'date_publication'
+        'dateCreation': 'date_publication',
+        'url_offre': 'url_offre'
     }
 
     cols_existantes = [c for c in colonnes_a_garder.keys() if c in df_spark.columns]

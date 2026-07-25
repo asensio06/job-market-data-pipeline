@@ -215,7 +215,7 @@ st.subheader("📋 Liste des Offres d'Alternance Data (24 Mois)")
 st.dataframe(
     df_filtered[[
         'id_offre', 'titre_poste', 'nom_entreprise', 
-        'localisation', 'duree_contrat', 'competences_tech', 'date_publication'
+        'localisation', 'duree_contrat', 'competences_tech', 'url_offre', 'date_publication'
     ]],
     column_config={
         "id_offre": "ID Offre",
@@ -224,6 +224,7 @@ st.dataframe(
         "localisation": "Localisation",
         "duree_contrat": "Durée Contrat",
         "competences_tech": "Compétences Tech (Spark NLP)",
+        "url_offre": st.column_config.LinkColumn("Lien de l'offre", display_text="Postuler 🚀"),
         "date_publication": "Date Publication"
     },
     use_container_width=True,

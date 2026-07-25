@@ -23,12 +23,14 @@ def init_db(con):
             salaire VARCHAR,
             competences_tech VARCHAR,
             date_publication VARCHAR,
+            url_offre VARCHAR,
             date_insertion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
 
     # Ajout sécurisé de la colonne si absente
     con.execute("ALTER TABLE silver_offres ADD COLUMN IF NOT EXISTS competences_tech VARCHAR;")
+    con.execute("ALTER TABLE silver_offres ADD COLUMN IF NOT EXISTS url_offre VARCHAR;")
 
 def process_gold_layer():
     print("🏆 Démarrage de la mise à jour de la couche Gold & Base de données...")
@@ -50,6 +52,9 @@ def process_gold_layer():
     # S'assurer que les colonnes existent
     if 'competences_tech' not in df_silver.columns:
         df_silver['competences_tech'] = 'Non renseigné'
+
+    if 'url_offre' not in df_silver.columns:
+        df_silver['url_offre'] = df_silver['id_offre'].apply(lambda x: f"https://candidat.francetravail.fr/offres/recherche/detail/{x}")
 
     if 'zone_geographique' not in df_silver.columns:
         def determine_zone(loc):
@@ -79,12 +84,12 @@ def process_gold_layer():
         INSERT INTO silver_offres (
             id_offre, titre_poste, nom_entreprise, localisation, 
             zone_geographique, type_contrat, duree_contrat, 
-            nature_contrat, salaire, competences_tech, date_publication
+            nature_contrat, salaire, competences_tech, date_publication, url_offre
         )
         SELECT 
             id_offre, titre_poste, nom_entreprise, localisation, 
             zone_geographique, type_contrat, duree_contrat, 
-            nature_contrat, salaire, competences_tech, date_publication
+            nature_contrat, salaire, competences_tech, date_publication, url_offre
         FROM df_temp
         ON CONFLICT (id_offre) DO UPDATE SET
             titre_poste = EXCLUDED.titre_poste,
@@ -93,7 +98,8 @@ def process_gold_layer():
             zone_geographique = EXCLUDED.zone_geographique,
             duree_contrat = EXCLUDED.duree_contrat,
             salaire = EXCLUDED.salaire,
-            competences_tech = EXCLUDED.competences_tech;
+            competences_tech = EXCLUDED.competences_tech,
+            url_offre = EXCLUDED.url_offre;
     """)
 
     count_after = con.execute("SELECT COUNT(*) FROM silver_offres").fetchone()[0]
