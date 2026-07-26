@@ -171,7 +171,7 @@ def process_gold_layer():
     # 6. Exécution de dbt (Modélisation Dimensionnelle en Étoile & Tests de qualité)
     print("\n--- 🏗️ ÉTAPE dbt : Modélisation en Étoile & Data Quality Tests ---")
     try:
-        dbt_dir = '/opt/airflow/dbt_project' if os.path.exists('/opt/airflow/dbt_project') else 'dbt_project'
+        dbt_dir = os.path.abspath('dbt_project')
         
         # dbt run
         print("▶️ Exécution de `dbt run`...")
