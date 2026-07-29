@@ -7,20 +7,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "linkedin-data-api.p.rapidapi.com")
+RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST", "linkedin-data-api7.p.rapidapi.com")
 
 def extract_linkedin_jobs():
     """
-    Extrait les offres d'emploi LinkedIn depuis RapidAPI et les sauvegarde dans data/bronze/.
+    Extrait les offres d'emploi LinkedIn depuis RapidAPI (linkedin-data-api7) et les sauvegarde dans data/bronze/.
     """
     print("\n--- 🔍 EXTRACTION LINKEDIN (RapidAPI) ---")
     
     if not RAPIDAPI_KEY:
         print("⚠️ RAPIDAPI_KEY n'est pas configurée dans le fichier .env.")
-        print("💡 Pour activer l'extraction LinkedIn, ajoutez RAPIDAPI_KEY=\"votre_clé_rapidapi\" dans .env.")
         return None
 
-    url = f"https://{RAPIDAPI_HOST}/search-jobs"
+    url = f"https://{RAPIDAPI_HOST}/jobs/search"
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -28,28 +27,27 @@ def extract_linkedin_jobs():
 
     all_jobs = []
     queries = [
-        {"keywords": "Data Alternance", "location": "Paris, Île-de-France, France"},
-        {"keywords": "Data Alternance", "location": "Lille, Hauts-de-France, France"}
+        {"keywords": "Data Alternance", "location": "Île-de-France, France"},
+        {"keywords": "Data Alternance", "location": "Lille, France"}
     ]
 
     for q in queries:
-        print(f"🔍 Recherche LinkedIn : {q['keywords']} à {q['location']}...")
+        print(f"🔍 Recherche LinkedIn ({RAPIDAPI_HOST}) : '{q['keywords']}' à {q['location']}...")
         params = {
             "keywords": q["keywords"],
-            "locationId": q["location"],
-            "datePosted": "pastMonth",
-            "sort": "mostRecent"
+            "location": q["location"]
         }
         try:
             response = requests.get(url, headers=headers, params=params, timeout=15)
             if response.status_code == 200:
                 data = response.json()
-                jobs = data.get("data", data.get("items", [])) if isinstance(data, dict) else data
+                # Extraction du tableau jobs
+                jobs = data.get("jobs", data.get("data", data.get("items", []))) if isinstance(data, dict) else data
                 if isinstance(jobs, list):
                     all_jobs.extend(jobs)
-                    print(f"  ✅ {len(jobs)} offres LinkedIn récupérées.")
+                    print(f"  ✅ {len(jobs)} offres LinkedIn récupérées pour {q['location']}.")
                 else:
-                    print(f"  ⚠️ Réponse inattendue : {data}")
+                    print(f"  ⚠️ Format de réponse inattendu : {data}")
             else:
                 print(f"  ⚠️ Erreur API LinkedIn ({response.status_code}) : {response.text[:200]}")
         except Exception as e:
@@ -59,10 +57,10 @@ def extract_linkedin_jobs():
         print("ℹ️ Aucune offre LinkedIn n'a été extraite.")
         return None
 
-    # Déduplication par ID si disponible
+    # Déduplication par jobId / id
     unique_jobs = {}
     for job in all_jobs:
-        job_id = str(job.get("id", job.get("jobId", job.get("url", ""))))
+        job_id = str(job.get("jobId", job.get("id", job.get("url", ""))))
         if job_id:
             unique_jobs[job_id] = job
 
