@@ -16,26 +16,43 @@ LISTE_SKILLS_TECH = [
 def process_silver_layer():
     print("🛠️ Démarrage de la transformation Silver avec PySpark...")
 
-    # 1. Identifier le fichier JSON le plus récent dans Bronze
+    # 1. Identifier tous les fichiers JSON récents dans Bronze
     bronze_files = glob.glob('data/bronze/*.json')
     if not bronze_files:
         print("❌ Aucun fichier trouvé dans data/bronze/.")
         return
     
-    latest_file = max(bronze_files, key=os.path.getctime)
-    print(f"📄 Lecture du fichier brut : {latest_file}")
+    # Charger et unifier les fichiers bruts (France Travail + LinkedIn)
+    offres_list = []
+    for filepath in set(bronze_files):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            items = data.get('resultats', data) if isinstance(data, dict) else data
+            if isinstance(items, list):
+                for item in items:
+                    # Normalisation des clés LinkedIn vers la structure unifiée
+                    if 'jobTitle' in item or 'title' in item:
+                        item['intitule'] = item.get('jobTitle', item.get('title', ''))
+                        item['entreprise.nom'] = item.get('companyName', item.get('company', ''))
+                        item['lieuTravail.libelle'] = item.get('location', '')
+                        item['description'] = item.get('description', item.get('snippet', ''))
+                        item['id'] = str(item.get('id', item.get('jobId', '')))
+                        item['alternance'] = 'True'
+                        item['typeContratLibelle'] = 'CDD - 24 Mois'
+                        if 'url' in item:
+                            item['url_offre'] = item['url']
+                    offres_list.append(item)
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la lecture de {filepath} : {e}")
 
-    with open(latest_file, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    offres = data.get('resultats', data) if isinstance(data, dict) else data
-    if not offres:
-        print("⚠️ Le fichier JSON est vide.")
+    if not offres_list:
+        print("⚠️ Aucune offre valide trouvée dans les fichiers JSON.")
         return
 
     # Pandas normalization pour garantir la propreté de la structure
-    df_pd = pd.json_normalize(offres).astype(str)
-    print(f"📊 Nombre total d'offres avant filtrage : {len(df_pd)}")
+    df_pd = pd.json_normalize(offres_list).astype(str)
+    print(f"📊 Nombre total d'offres avant filtrage (Toutes sources) : {len(df_pd)}")
 
     # 2. Initialisation de PySpark
     spark = SparkSession.builder \

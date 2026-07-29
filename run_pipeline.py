@@ -13,19 +13,20 @@ def run_full_pipeline():
     print("🚀 LANCEMENT DU PIPELINE MEDALLION COMPLET (Bronze -> Silver -> Gold)")
     print("=" * 60)
     
-    # Étape 1 : COUCHE BRONZE (Extraction API)
-    print("\n--- 1. ÉTAPE BRONZE (EXTRACTION API) ---")
+    # Étape 1 : COUCHE BRONZE (Extraction APIs Multi-Sources)
+    print("\n--- 1. ÉTAPE BRONZE (EXTRACTION APIS MULTI-SOURCES) ---")
     token = get_access_token()
-    if not token:
-        print("❌ Échec lors de la récupération du token API. Fin du pipeline.")
-        sys.exit(1)
-        
-    job_data = fetch_job_offers(token)
-    if not job_data or not job_data.get("resultats"):
-        print("⚠️ Aucune donnée récupérée depuis l'API. Arrêt du pipeline.")
-        sys.exit(1)
-        
-    save_to_bronze(job_data)
+    if token:
+        job_data = fetch_job_offers(token)
+        if job_data and job_data.get("resultats"):
+            save_to_bronze(job_data)
+
+    # Extraction optionnelle LinkedIn (RapidAPI)
+    try:
+        from extract_linkedin import extract_linkedin_jobs
+        extract_linkedin_jobs()
+    except Exception as e:
+        print(f"ℹ️ Étape LinkedIn ignorée : {e}")
     
     # Étape 2 : COUCHE SILVER (Nettoyage & Filtrage)
     print("\n--- 2. ÉTAPE SILVER (TRANSFORMATION & FILTRAGE) ---")
