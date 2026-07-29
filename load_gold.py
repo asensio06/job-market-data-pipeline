@@ -53,8 +53,16 @@ def process_gold_layer():
     if 'competences_tech' not in df_silver.columns:
         df_silver['competences_tech'] = 'Non renseigné'
 
-    if 'url_offre' not in df_silver.columns:
-        df_silver['url_offre'] = df_silver['id_offre'].apply(lambda x: f"https://candidat.francetravail.fr/offres/recherche/detail/{x}")
+    def build_url(row):
+        id_str = str(row['id_offre'])
+        url_str = str(row.get('url_offre', ''))
+        if url_str and url_str not in ['nan', 'None', '', 'Non renseigné'] and 'francetravail' not in url_str:
+            return url_str
+        if len(id_str) >= 9 and id_str.isdigit():
+            return f"https://www.linkedin.com/jobs/view/{id_str}"
+        return f"https://candidat.francetravail.fr/offres/recherche/detail/{id_str}"
+    
+    df_silver['url_offre'] = df_silver.apply(build_url, axis=1)
 
     if 'zone_geographique' not in df_silver.columns:
         def determine_zone(loc):

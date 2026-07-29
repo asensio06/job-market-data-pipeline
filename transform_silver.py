@@ -100,11 +100,20 @@ def process_silver_layer():
     # 7. EXTRACTION BIG DATA DE COMPÉTENCES TECH AVEC PYSPARK
     df_spark = df_spark.withColumn('text_full', F.lower(F.concat_ws(' ', F.col('intitule'), F.col('description'))))
     
-    # Création du lien direct vers l'offre sur France Travail
-    df_spark = df_spark.withColumn(
-        'url_offre', 
-        F.concat(F.lit("https://candidat.francetravail.fr/offres/recherche/detail/"), F.col('id'))
-    )
+    # Création du lien direct vers l'offre (LinkedIn vs France Travail)
+    if 'url_offre' in df_spark.columns:
+        df_spark = df_spark.withColumn(
+            'url_offre',
+            F.when((F.col('url_offre').isNotNull()) & (F.col('url_offre') != '') & (F.col('url_offre') != 'None') & (F.col('url_offre') != 'nan') & (~F.col('url_offre').rlike('(?i)francetravail')), F.col('url_offre'))
+            .when(F.col('id').rlike('^\\d{9,}$'), F.concat(F.lit("https://www.linkedin.com/jobs/view/"), F.col('id')))
+            .otherwise(F.concat(F.lit("https://candidat.francetravail.fr/offres/recherche/detail/"), F.col('id')))
+        )
+    else:
+        df_spark = df_spark.withColumn(
+            'url_offre',
+            F.when(F.col('id').rlike('^\\d{9,}$'), F.concat(F.lit("https://www.linkedin.com/jobs/view/"), F.col('id')))
+            .otherwise(F.concat(F.lit("https://candidat.francetravail.fr/offres/recherche/detail/"), F.col('id')))
+        )
 
     skill_cols = [F.when(F.col('text_full').rlike(rf'\b{s}\b'), F.lit(s)).otherwise(None) for s in LISTE_SKILLS_TECH]
     df_spark = df_spark.withColumn('competences_array', F.array(*skill_cols))
