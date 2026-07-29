@@ -33,13 +33,21 @@ def process_silver_layer():
                 for item in items:
                     # Normalisation des clés LinkedIn vers la structure unifiée
                     if 'jobTitle' in item or 'title' in item:
+                        title_text = str(item.get('jobTitle', item.get('title', ''))).lower()
+                        desc_text = str(item.get('description', item.get('snippet', ''))).lower()
+                        full_text = f"{title_text} {desc_text}"
+
+                        # Vérification stricte : l'offre doit mentionner alternance / apprentissage / professionnalisation / 24 mois
+                        is_alternance = any(k in full_text for k in ['alternan', 'apprentissage', 'professionnalisation', 'apprentissage'])
+                        is_cdi = 'cdi' in title_text and not is_alternance
+
                         item['intitule'] = item.get('jobTitle', item.get('title', ''))
                         item['entreprise.nom'] = item.get('companyName', item.get('company', ''))
                         item['lieuTravail.libelle'] = item.get('location', '')
                         item['description'] = item.get('description', item.get('snippet', ''))
                         item['id'] = str(item.get('id', item.get('jobId', '')))
-                        item['alternance'] = 'True'
-                        item['typeContratLibelle'] = 'CDD - 24 Mois'
+                        item['alternance'] = 'True' if (is_alternance and not is_cdi) else 'False'
+                        item['typeContratLibelle'] = 'CDD - 24 Mois' if (is_alternance and not is_cdi) else 'Autre'
                         if 'url' in item:
                             item['url_offre'] = item['url']
                     offres_list.append(item)
@@ -69,6 +77,9 @@ def process_silver_layer():
         df_spark = df_spark.filter(F.col('alternance') == 'True')
     elif 'natureContrat' in df_spark.columns:
         df_spark = df_spark.filter(F.col('natureContrat').rlike('(?i)apprentissage|professionnalisation'))
+
+    # Exclusion stricte des postes CDI explicites dans le titre (ex: "Data Analyst - CDI")
+    df_spark = df_spark.filter(~F.col('intitule').rlike('(?i)\\bCDI\\b'))
 
     # 4. Filtrage 2 : Intitulés de postes ciblés
     mots_cles_postes = '(?i)data analyst|data scientist|data engineer|qualité et de la performance|business analyst|data manager|data'
