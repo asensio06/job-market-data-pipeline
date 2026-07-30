@@ -40,22 +40,57 @@ def send_discord_message(message):
         print(f"❌ Erreur d'envoi Discord : {e}")
         return False
 
+NOTIFIED_IDS_FILE = "data/notified_ids.json"
+
+def load_notified_ids():
+    """Charge les IDs d'offres déjà notifiées sur Telegram depuis le fichier JSON."""
+    if os.path.exists(NOTIFIED_IDS_FILE):
+        try:
+            with open(NOTIFIED_IDS_FILE, "r", encoding="utf-8") as f:
+                return set(json.load(f))
+        except Exception:
+            return set()
+    return set()
+
+def save_notified_id(id_offre):
+    """Sauvegarde un ID d'offre notifié pour éviter tout envoi futur de doublon."""
+    notified_ids = load_notified_ids()
+    notified_ids.add(str(id_offre))
+    os.makedirs("data", exist_ok=True)
+    with open(NOTIFIED_IDS_FILE, "w", encoding="utf-8") as f:
+        json.dump(list(notified_ids), f, ensure_ascii=False, indent=2)
+
 def notify_new_offers(new_offers_list):
     """
-    Prend une liste de dictionnaires d'offres et envoie une alerte pour chaque nouvelle offre.
+    Prend une liste de dictionnaires d'offres et envoie une alerte UNIQUE pour chaque nouvelle offre.
     """
     if not new_offers_list:
         print("ℹ️ Aucune nouvelle offre à notifier.")
         return
 
-    print(f"🔔 Préparation des alertes pour {len(new_offers_list)} nouvelle(s) offre(s)...")
-
+    notified_ids = load_notified_ids()
+    filtered_offers = []
+    
+    # Filtrer les offres uniques non encore notifiées
+    seen_in_batch = set()
     for offer in new_offers_list:
+        id_str = str(offer.get("id_offre", ""))
+        if id_str and id_str not in notified_ids and id_str not in seen_in_batch:
+            seen_in_batch.add(id_str)
+            filtered_offers.append(offer)
+
+    if not filtered_offers:
+        print("ℹ️ Toutes les offres de la liste ont déjà été notifiées par le passé (0 doublon envoyé).")
+        return
+
+    print(f"🔔 Préparation des alertes pour {len(filtered_offers)} nouvelle(s) offre(s) inédite(s)...")
+
+    for offer in filtered_offers:
         titre = offer.get("titre_poste", "Non renseigné")
         entreprise = offer.get("nom_entreprise", "Non renseignée")
         lieu = offer.get("localisation", "Non renseignée")
         contrat = offer.get("duree_contrat", offer.get("type_contrat", "24 mois"))
-        id_offre = offer.get("id_offre", "")
+        id_offre = str(offer.get("id_offre", ""))
         url_offre = offer.get("url_offre", f"https://candidat.francetravail.fr/offres/recherche/detail/{id_offre}")
         competences = offer.get("competences_tech", "Non renseigné")
 
@@ -81,14 +116,13 @@ def notify_new_offers(new_offers_list):
             sent = send_telegram_message(msg)
             if sent:
                 print(f"📱 Alerte Telegram envoyée pour l'offre {id_offre}.")
+                save_notified_id(id_offre)
 
         # 3. Discord (si configuré)
         if DISCORD_WEBHOOK_URL:
             # Remplacement syntaxe Markdown simple pour Discord
             discord_msg = msg.replace("*", "**").replace("`", "`")
-            sent = send_discord_message(discord_msg)
-            if sent:
-                print(f"💬 Alerte Discord envoyée pour l'offre {id_offre}.")
+            send_discord_message(discord_msg)
 
 if __name__ == "__main__":
     # Test d'exemple
