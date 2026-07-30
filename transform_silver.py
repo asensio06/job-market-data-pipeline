@@ -86,9 +86,9 @@ def process_silver_layer():
     if 'intitule' in df_spark.columns:
         df_spark = df_spark.filter(F.col('intitule').rlike(mots_cles_postes))
 
-    # 5. Filtrage 3 : Exclure les écoles / organismes de formation
-    regex_ecoles = '(?i)iscod|kaischool|openclassrooms|studi|pigier|epitech|cfa|ecole|école|campus|euridis|mbway|formation|imc'
-    regex_desc_ecole = "(?i)école partenaire|ecole partenaire|centre de formation|spécialiste de la formation|dans le cadre d'une formation|pour le compte d'une école|école de commerce|cabinet de recrutement"
+    # 5. Filtrage 3 : Exclure les écoles / organismes de formation / cabinets de recrutement
+    regex_ecoles = '(?i)iscod|kaischool|openclassrooms|studi|pigier|epitech|cfa|ecole|école|campus|euridis|mbway|formation|imc|cesi|wild code school|ironhack|jedha|albert school|datascientest|efrei|esme|epita|ece|essec|hec|escp|skema|edhec|audencia|neoma|kedge|tbs|grenoble em|emlyon|igsub|esg|insee|isep|estaca|supinfo|devinci|iim|esd|digital school|ionis|afpa|greta|cnam|la plateform|m2i|simplon|adrar|doranco|cegos|le wagon'
+    regex_desc_ecole = "(?i)école partenaire|ecole partenaire|centre de formation|spécialiste de la formation|dans le cadre d'une formation|pour le compte d'une école|école de commerce|cabinet de recrutement|titre rncp|organisme de formation|ecole de commerce"
 
     if 'entreprise.nom' in df_spark.columns:
         df_spark = df_spark.filter(~F.col('`entreprise.nom`').rlike(regex_ecoles))
@@ -96,9 +96,17 @@ def process_silver_layer():
     if 'description' in df_spark.columns:
         df_spark = df_spark.filter(~F.col('description').rlike(regex_desc_ecole))
 
-    # 6. Filtrage 4 : Conserver UNIQUEMENT les contrats de 24 mois (CDD - 24 Mois)
+    # 6. Filtrage 4 : Strictement Île-de-France et Lille / Nord uniquement
+    regex_zones_autorisees = '(?i)75|77|78|91|92|93|94|95|île-de-france|ile-de-france|paris|59|lille|villeneuve|roubaix|tourcoing|seclin|nord'
+    if 'lieuTravail.libelle' in df_spark.columns:
+        df_spark = df_spark.filter(F.col('`lieuTravail.libelle`').rlike(regex_zones_autorisees))
+
+    # 7. Filtrage 5 : Conserver UNIQUEMENT les contrats d'alternance de 24 mois (2 ans)
+    regex_24m = '(?i)24\\s*mois|2\\s*ans|24\\s*months|2\\s*years'
     if 'typeContratLibelle' in df_spark.columns:
-        df_spark = df_spark.filter(F.col('typeContratLibelle').rlike('(?i)24\\s*mois'))
+        df_spark = df_spark.filter(
+            F.col('typeContratLibelle').rlike('(?i)24\\s*mois') | F.col('intitule').rlike(regex_24m) | F.col('description').rlike(regex_24m)
+        )
 
     nb_filtre = df_spark.count()
     print(f"🎯 Nombre d'offres après tous les filtrages (Alternance + Entreprises + 24 mois uniquement) : {nb_filtre}")
