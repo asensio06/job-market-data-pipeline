@@ -27,18 +27,29 @@ default_args = {
 }
 
 def extract_bronze_task():
-    """Tâche Airflow 1 : Extraction API France Travail -> Bronze JSON"""
-    print("🚀 Execution de la tache Bronze (Extraction API)...")
-    token = get_access_token()
-    if not token:
-        raise ValueError("Impossible d'obtenir le token d'acces API France Travail.")
-    
-    job_data = fetch_job_offers(token)
-    if not job_data or not job_data.get("resultats"):
-        print("⚠️ Aucune offre recuperee depuis l'API.")
-        return
-        
-    save_to_bronze(job_data)
+    """Tâche Airflow 1 : Extraction Multi-Sources (France Travail, LinkedIn, Adzuna) -> Bronze JSON"""
+    print("🚀 Execution de la tache Bronze (Extraction APIs Multi-Sources)...")
+    try:
+        token = get_access_token()
+        if token:
+            job_data = fetch_job_offers(token)
+            if job_data and job_data.get("resultats"):
+                save_to_bronze(job_data)
+    except Exception as e:
+        print(f"⚠️ Extraction France Travail : {e}")
+
+    try:
+        from extract_linkedin import extract_linkedin_jobs
+        extract_linkedin_jobs()
+    except Exception as e:
+        print(f"⚠️ Extraction LinkedIn : {e}")
+
+    try:
+        from extract_adzuna import extract_adzuna_jobs
+        extract_adzuna_jobs()
+    except Exception as e:
+        print(f"⚠️ Extraction Adzuna : {e}")
+
     print("✅ Tache Bronze terminee avec succes.")
 
 def transform_silver_task():

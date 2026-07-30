@@ -31,25 +31,37 @@ def process_silver_layer():
             items = data.get('resultats', data) if isinstance(data, dict) else data
             if isinstance(items, list):
                 for item in items:
-                    # Normalisation des clés LinkedIn vers la structure unifiée
-                    if 'jobTitle' in item or 'title' in item:
+                    # Normalisation des clés LinkedIn & Adzuna vers la structure unifiée
+                    if 'jobTitle' in item or 'title' in item or 'redirect_url' in item:
                         title_text = str(item.get('jobTitle', item.get('title', ''))).lower()
                         desc_text = str(item.get('description', item.get('snippet', ''))).lower()
                         full_text = f"{title_text} {desc_text}"
 
-                        # Vérification stricte : l'offre doit mentionner alternance / apprentissage / professionnalisation / 24 mois
-                        is_alternance = any(k in full_text for k in ['alternan', 'apprentissage', 'professionnalisation', 'apprentissage'])
+                        # Vérification stricte : l'offre doit mentionner alternance / apprentissage / professionnalisation
+                        is_alternance = any(k in full_text for k in ['alternan', 'apprentissage', 'professionnalisation'])
                         is_cdi = 'cdi' in title_text and not is_alternance
 
+                        # Extraction nom entreprise Adzuna / LinkedIn
+                        comp = item.get('companyName', item.get('company', ''))
+                        if isinstance(comp, dict):
+                            comp = comp.get('display_name', '')
+
+                        # Extraction localisation Adzuna / LinkedIn
+                        loc = item.get('location', '')
+                        if isinstance(loc, dict):
+                            loc = loc.get('display_name', '')
+
                         item['intitule'] = item.get('jobTitle', item.get('title', ''))
-                        item['entreprise.nom'] = item.get('companyName', item.get('company', ''))
-                        item['lieuTravail.libelle'] = item.get('location', '')
+                        item['entreprise.nom'] = str(comp)
+                        item['lieuTravail.libelle'] = str(loc)
                         item['description'] = item.get('description', item.get('snippet', ''))
                         item['id'] = str(item.get('id', item.get('jobId', '')))
                         item['alternance'] = 'True' if (is_alternance and not is_cdi) else 'False'
                         item['typeContratLibelle'] = 'CDD - 24 Mois' if (is_alternance and not is_cdi) else 'Autre'
-                        if 'url' in item:
-                            item['url_offre'] = item['url']
+                        
+                        redirect_url = item.get('url', item.get('redirect_url', item.get('link', '')))
+                        if redirect_url:
+                            item['url_offre'] = redirect_url
                     offres_list.append(item)
         except Exception as e:
             print(f"⚠️ Erreur lors de la lecture de {filepath} : {e}")

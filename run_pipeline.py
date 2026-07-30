@@ -27,6 +27,13 @@ def run_full_pipeline():
         extract_linkedin_jobs()
     except Exception as e:
         print(f"ℹ️ Étape LinkedIn ignorée : {e}")
+
+    # Extraction optionnelle Adzuna (API Officielle)
+    try:
+        from extract_adzuna import extract_adzuna_jobs
+        extract_adzuna_jobs()
+    except Exception as e:
+        print(f"ℹ️ Étape Adzuna ignorée : {e}")
     
     # Étape 2 : COUCHE SILVER (Nettoyage & Filtrage)
     print("\n--- 2. ÉTAPE SILVER (TRANSFORMATION & FILTRAGE) ---")
